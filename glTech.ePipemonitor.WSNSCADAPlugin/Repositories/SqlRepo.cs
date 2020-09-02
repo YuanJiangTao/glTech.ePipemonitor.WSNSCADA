@@ -21,6 +21,16 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Repositories
             var sql = "select * from MonitoringServerConfig where [State]=1 ";
             return Dapper.Query<MonitoringServerConfigModel>(sql);
         }
+        public MonitoringServerConfigModel GetMonitoringServerConfigModelById(int monitorServerId)
+        {
+            var sql = $"select * from MonitoringServerConfig where [State]=1  AND MonitoringServerID={monitorServerId}";
+            return Dapper.Query<MonitoringServerConfigModel>(sql).FirstOrDefault();
+        }
+        public IEnumerable<SubStationModel> GetSubStationModelsByMonitorServerId(int monitorServerId)
+        {
+            var sql = $"select * from SubStation where [IsUsed]=1 AND MonitoringServerID={monitorServerId}";
+            return Dapper.Query<SubStationModel>(sql);
+        }
         public IEnumerable<SubStationModel> GetSubStationModels()
         {
             var sql = "select * from SubStation where [IsUsed]=1";
@@ -85,6 +95,11 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Repositories
         public IEnumerable<FluxPointModel> GetFluxPointModelsBySubstationId(int substationId)
         {
             var sql = $"select * from FluxPoint where IsUsed=1 AND SubStationID={substationId}";
+            return Dapper.Query<FluxPointModel>(sql);
+        }
+        public IEnumerable<FluxPointModel> GetFluxPointModelById(int fluxId)
+        {
+            var sql = $"select * from FluxPoint where IsUsed=1 AND FluxId={fluxId}";
             return Dapper.Query<FluxPointModel>(sql);
         }
 

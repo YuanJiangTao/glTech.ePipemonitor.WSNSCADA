@@ -17,6 +17,10 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
         bool ReloadSubstation(SubStationModel subStationModel);
         bool HasSubstation(int substationId);
 
+        bool DeleteFluxPoint(int substationId, int fluxId);
+
+        SubStationModel GetSubStationModelBySubstationId(int substationId);
+
         event EventHandler<SubStationUpdateRealDataEventArgs> DasUpdateRealData;
     }
 }

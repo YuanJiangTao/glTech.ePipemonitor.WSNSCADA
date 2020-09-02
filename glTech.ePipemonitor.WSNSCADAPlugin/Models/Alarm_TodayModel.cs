@@ -98,7 +98,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
             row["Treatment"] = Treatment;
             row["TreatmentTime"] = DateTime.Now;
 
-            row["Writer"] = "";
+            row["Writer"] = Writer;
             row["TableType"] = TableType;
             dt.Rows.Add(row);
         }
@@ -141,6 +141,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
                         existM.State = newM.State;
                         existM.AlarmValue = newM.AlarmValue;
                         existM.EndTime = newM.EndTime;
+                        existM.SpanTime = (int)newM.EndTime.Subtract(newM.StartTime).TotalSeconds;
                     }
                     else
                         alarmTodayModels.Add(alarmTodayModel.DeepClone());

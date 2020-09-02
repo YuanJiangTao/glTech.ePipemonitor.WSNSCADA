@@ -64,8 +64,8 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
                 new PluginKV()
                 {
                     Key=KvSettingKeyConst.ANALOG_OFF_COUNT,
-                    Value="false",
-                    KvType=KvType.Bool,
+                    Value="5",
+                    KvType=KvType.String,
                     Description="模拟量断线屏蔽次数"
                 }
             };

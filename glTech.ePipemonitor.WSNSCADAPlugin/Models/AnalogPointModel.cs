@@ -98,16 +98,23 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
 
         internal void Update(DateTime now, List<SensorRealDataInfo> sensorRealDataInfos)
         {
-            _analogOffCount = 0;
             var sensorRealData = sensorRealDataInfos.FirstOrDefault(p => p.EquipCodes.Exists(q => q == EquipCode));
-            PointState valueState = PointState.OK;
-            HandleAnalogAlarm(sensorRealData.Value, ref valueState);
-            RealDataModel.Update(now, sensorRealData.Value.ToString("f2"), valueState);
-            _analogRunModel.Update(RealDataModel);
-            _analogRunModels.Add(_analogRunModel);
-            AnalogStatisticModel.UpdateAnalogStatistic(ref _analogStatisticModel, _analogStatisticModels, RealDataModel, this);
-            AnalogAlarmModel.UpdateAnalogAlarm(ref _analogAlarmModel, _analogAlarmModels, RealDataModel,this, IsAlarmState);
-            Alarm_TodayModel.UpdateAlarmToday(ref _alarmTodayModel, _alarmTodayModels, RealDataModel,this, IsAlarmState);
+            if (sensorRealData.IsAnalogOk)
+            {
+                _analogOffCount = 0;
+                PointState valueState = PointState.OK;
+                HandleAnalogAlarm(sensorRealData.Value, ref valueState);
+                RealDataModel.Update(now, sensorRealData.Value.ToString("f2"), valueState);
+                _analogRunModel.Update(RealDataModel);
+                _analogRunModels.Add(_analogRunModel);
+                AnalogStatisticModel.UpdateAnalogStatistic(ref _analogStatisticModel, _analogStatisticModels, RealDataModel, this);
+                AnalogAlarmModel.UpdateAnalogAlarm(ref _analogAlarmModel, _analogAlarmModels, RealDataModel, this, IsAlarmState);
+                Alarm_TodayModel.UpdateAlarmToday(ref _alarmTodayModel, _alarmTodayModels, RealDataModel, this, IsAlarmState);
+            }
+            else
+            {
+                Update(now);
+            }
         }
         /// <summary>
         /// 根据状态值判断模拟量是否报警
@@ -170,11 +177,16 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
                 pointState = PointState.LowerLimitSwitchingOff;
             }
         }
+        internal void UpdateWhenSubstationOff(DateTime now)
+        {
+            UpdateAnalogOff(now);
+        }
         internal void Update(DateTime now)
         {
             _analogOffCount++;
             if (new[] { PointState.UnKnow, PointState.Init }.All(o => o != (PointState)RealDataModel.RealState) && _analogOffCount <= DasConfig.SensorTimeoutCount)
             {
+                LogD.Info($"传感器[{PointID}]处于断线屏蔽次数之内：当前屏蔽次数:{_analogOffCount}");
                 RealDataModel.Update(now);
                 //处于屏蔽次数之内
                 _analogRunModels.Add(_analogRunModel);
@@ -184,16 +196,22 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
             }
             else
             {
-                var value = "模拟量断线";
-                var valueState = PointState.OFF;
-                //是真正的断线
-                RealDataModel.Update(now, value, valueState);
-                _analogRunModel.Update(RealDataModel);
-                _analogRunModels.Add(_analogRunModel);
-                AnalogStatisticModel.UpdateAnalogStatistic(ref _analogStatisticModel, _analogStatisticModels, RealDataModel, this);
-                AnalogAlarmModel.UpdateAnalogAlarm(ref _analogAlarmModel, _analogAlarmModels, RealDataModel, this, IsAlarmState);
-                Alarm_TodayModel.UpdateAlarmToday(ref _alarmTodayModel, _alarmTodayModels, RealDataModel, this, IsAlarmState);
+                UpdateAnalogOff(now);
             }
+        }
+
+        private void UpdateAnalogOff(DateTime now)
+        {
+            LogD.Info($"传感器[{PointID}]状态为真正断线...");
+            var value = "模拟量断线";
+            var valueState = PointState.OFF;
+            //是真正的断线
+            RealDataModel.Update(now, value, valueState);
+            _analogRunModel.Update(RealDataModel);
+            _analogRunModels.Add(_analogRunModel);
+            AnalogStatisticModel.UpdateAnalogStatistic(ref _analogStatisticModel, _analogStatisticModels, RealDataModel, this);
+            AnalogAlarmModel.UpdateAnalogAlarm(ref _analogAlarmModel, _analogAlarmModels, RealDataModel, this, IsAlarmState);
+            Alarm_TodayModel.UpdateAlarmToday(ref _alarmTodayModel, _alarmTodayModels, RealDataModel, this, IsAlarmState);
         }
 
         private readonly List<AnalogRunModel> _analogRunModels = new List<AnalogRunModel>();

@@ -15,7 +15,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
         public int PointType { get; set; }
         public string RealValue { get; set; }
         public DateTime RealDate { get; set; }
-        public int RealState { get; set; }
+        public int RealState { get; set; } = 1;
         public int FeedState { get; set; }
 
         public static string[] PrimaryKeys

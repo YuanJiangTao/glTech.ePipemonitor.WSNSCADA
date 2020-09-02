@@ -1,6 +1,8 @@
 ﻿using System.Windows;
 using MahApps.Metro.Controls;
 using PluginContract;
+using MahApps.Metro.Controls.Dialogs;
+using PluginContract.Utils;
 
 namespace glTech.ePipemonitor.WSNSCADA
 {
@@ -25,9 +27,10 @@ namespace glTech.ePipemonitor.WSNSCADA
             FlyoutSettings.IsOpen = !FlyoutSettings.IsOpen;
         }
 
-        private void BtnAboutInfo_Click(object sender, RoutedEventArgs e)
+        private async void BtnAboutInfo_Click(object sender, RoutedEventArgs e)
         {
-
+            var message = ProductUtil.GetAssemblyDescription(this.GetType().Assembly);
+            await this.ShowMessageAsync("关于",$"版本号：{message}" );
         }
     }
 }

@@ -11,6 +11,8 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
     {
         public List<RealDataModel> RealDataModels { get; set; }
 
+        public List<SubStationRunModel> SubStationRunModels { get; set; }
+
         public List<AnalogRunModel> AnalogRunModels { get; set; }
         public List<AnalogStatisticModel> AnalogStatisticModels { get; set; }
         public List<Alarm_TodayModel> Alarm_TodayModels { get; set; }
@@ -25,6 +27,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
         public SubStationUpdateRealDataEventArgs(
          int dasId,
          List<RealDataModel> realdataModels,
+         List<SubStationRunModel> subStationRunModels,
          List<AnalogRunModel> analogRunModels,
          List<AnalogStatisticModel> analogStatisticModels,
          List<Alarm_TodayModel> alarmTodayModels,
@@ -34,6 +37,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
         {
             DasId = dasId;
             RealDataModels = realdataModels;
+            SubStationRunModels = subStationRunModels;
             Alarm_TodayModels = alarmTodayModels;
             AnalogRunModels = analogRunModels;
             AnalogStatisticModels = analogStatisticModels;

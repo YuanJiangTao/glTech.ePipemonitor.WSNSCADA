@@ -12,8 +12,8 @@
     <ProjectReference Include="..\PluginContract\PluginContract.csproj" />
   </ItemGroup>
 
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+  <!--<Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <Exec Command="xcopy /y /f &quot;$(TargetDir)glTech.ePipemonitor.WSNSCADAPlugin.dll&quot; &quot;$(SolutionDir)\glTech.ePipemonitor.WSNSCADA\$(OutDir)Plugins\&quot;&#xD;&#xA;xcopy /y /f &quot;$(TargetDir)PluginContract.dll&quot; &quot;$(SolutionDir)\glTech.ePipemonitor.WSNSCADA\$(OutDir)Plugins\&quot;" />
-  </Target>
+  </Target>-->
 
 </Project>

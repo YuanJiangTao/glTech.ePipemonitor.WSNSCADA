@@ -1,4 +1,5 @@
-﻿using log4net;
+﻿//using log4net;
+using NLog;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -7,9 +8,9 @@ namespace PluginContract.Utils
 {
     public class LogDog : ILogDog
     {
-        private ILog _log;
+        private readonly Logger _log;
 
-        public LogDog(ILog log)
+        public LogDog(Logger log)
         {
             _log = log;
         }
@@ -38,30 +39,27 @@ namespace PluginContract.Utils
 
         public void Info(string msg, Exception ex)
         {
-            _log.Info(msg, ex);
+            _log.Info(ex, msg);
         }
         public void Debug(string msg, Exception ex)
         {
-            _log.Debug(msg, ex);
+            _log.Debug(ex, msg);
         }
         public void Warn(string msg, Exception ex)
         {
-            _log.Warn(msg, ex);
+            _log.Warn(ex, msg);
         }
         public void Error(string msg, Exception ex)
         {
-            _log.Error(msg, ex);
+            _log.Error(ex, msg);
         }
         public void Fatal(string msg, Exception ex)
         {
-            _log.Fatal(msg, ex);
+            _log.Fatal(ex, msg);
         }
 
         public void Dispose()
         {
-            _ = _log.Logger.Repository.GetAppenders();
-            _log.Logger.Repository.Shutdown();
-            _log = null;
         }
     }
 }

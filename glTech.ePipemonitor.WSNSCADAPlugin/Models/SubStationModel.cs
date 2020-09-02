@@ -1,7 +1,9 @@
 ﻿using glTech.ePipemonitor.WSNSCADAPlugin.glTech.SupperIO.Protocol.Substation;
+using PluginContract.Helper;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Emit;
 using System.Text;
 
 namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
@@ -12,22 +14,48 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
         public List<AnalogPointModel> AnalogPointModels { get; } = new List<AnalogPointModel>();
 
         public List<FluxPointModel> FluxPointModels { get; } = new List<FluxPointModel>();
+
+        private readonly List<SubStationRunModel> _subStationRunModels = new List<SubStationRunModel>();
+
+        public List<SubStationRunModel> SubStationRunModels
+        {
+            get
+            {
+                return ModelHelper.CopyThenRemove(_subStationRunModels);
+            }
+        }
         public void InitPointModel(List<AnalogPointModel> analogPointModels, List<FluxPointModel> fluxPointModels,
             List<FluxRunModel> fluxRunModels)
         {
-            AnalogPointModels.AddRange(analogPointModels);
-            FluxPointModels.AddRange(fluxPointModels);
+            lock (_lock)
+            {
+                AnalogPointModels.AddRange(analogPointModels);
+                FluxPointModels.AddRange(fluxPointModels);
 
-            AnalogPointModels.ForEach(p => p.InitPointModel());
-            FluxPointModels.ForEach(p => p.InitPointModel(fluxRunModels?.FirstOrDefault(q => q.FluxID == p.FluxID)));
+                AnalogPointModels.ForEach(p => p.InitPointModel());
+                FluxPointModels.ForEach(p => p.InitPointModel(fluxRunModels?.FirstOrDefault(q => q.FluxID == p.FluxID)));
+            }
             InitRealDataModel(RealDataModel);
+        }
+        public void InitPointModel(List<FluxPointModel> fluxPointModels,
+            List<FluxRunModel> fluxRunModels)
+        {
+            if (fluxPointModels != null)
+            {
+                lock (_lock)
+                {
+                    fluxPointModels.ForEach(p => FluxPointModels.RemoveAll(q => q.FluxID == p.FluxID));
+                    FluxPointModels.AddRange(fluxPointModels);
+                    FluxPointModels.ForEach(p => p.InitPointModel(fluxRunModels?.FirstOrDefault(q => q.FluxID == p.FluxID)));
+                }
+            }
         }
 
         public RealDataModel RealDataModel { get; } = new RealDataModel();
 
         private void InitRealDataModel(RealDataModel realDataModel)
         {
-            realDataModel.PointID = $"{SubStationID:D3}000"; 
+            realDataModel.PointID = $"{SubStationID:D3}000";
             realDataModel.PointName = this.SubStationName;
             realDataModel.SubStationID = this.SubStationID;
             realDataModel.PointType = (int)this.PointType;
@@ -42,15 +70,25 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
             var state = PointState.OFF;
             _tcpOffCount++;
             if (_tcpOffCount < DasConfig.NetworkOffCount &&
-                (this.RealDataModel.RealState == (int)PointState.AC
-                    || this.RealDataModel.RealState == (int)PointState.DC))
+                this.RealDataModel.RealState == (int)PointState.OK)
             {
                 RealDataModel.Update(now);
+                AnalogPointModels.ForEach(p => p.Update(now));
             }
             else
             {
                 RealDataModel.Update(now, value, state, FeedState.OK);
+                AnalogPointModels.ForEach(p => p.UpdateWhenSubstationOff(now));
             }
+
+            SubStationRunModel.UpdateSubStationRun(ref _subStationRunModel, _subStationRunModels, RealDataModel, this);
+        }
+
+        public void UpdateAnalogOff(DateTime now)
+        {
+            RealDataModel.Update(now, "正常", PointState.OK);
+            SubStationRunModel.UpdateSubStationRun(ref _subStationRunModel, _subStationRunModels, RealDataModel, this);
+            AnalogPointModels.ForEach(p => p.Update(now));
         }
 
 
@@ -93,21 +131,42 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
                 // 只更新时间
                 RealDataModel.Update(now);
             }
+            SubStationRunModel.UpdateSubStationRun(ref _subStationRunModel, _subStationRunModels, RealDataModel, this);
         }
 
+
+        private static object _lock = new object();
+        private SubStationRunModel _subStationRunModel;
         internal void Update(DateTime now, SubStationData substationData)
         {
             RealDataModel.Update(now, "正常", PointState.OK);
             AnalogPointModels.ForEach(p => p.Update(now, substationData.SensorRealDataInfos));
             try
             {
-                FluxPointModels.ForEach(p => p.Update(now, AnalogPointModels.Select(p => p.RealDataModel).ToList()));
+                lock (_lock)
+                {
+                    FluxPointModels.ForEach(p => p.Update(now, AnalogPointModels.Select(p => p.RealDataModel).ToList()));
+                }
+                SubStationRunModel.UpdateSubStationRun(ref _subStationRunModel, _subStationRunModels, RealDataModel, this);
             }
             catch (Exception ex)
             {
                 LogD.Error(ex.ToString());
             }
         }
+        public bool DeleteFluxPoint(int fluxId)
+        {
+            lock (_lock)
+            {
+                return FluxPointModels.RemoveAll(p => p.FluxID == fluxId) == 1;
+            }
+        }
+        public bool IsExist(int fluxId)
+        {
+            lock (_lock)
+                return FluxPointModels.Exists(p => p.FluxID == fluxId);
+        }
+
     }
 
     enum PointType : byte

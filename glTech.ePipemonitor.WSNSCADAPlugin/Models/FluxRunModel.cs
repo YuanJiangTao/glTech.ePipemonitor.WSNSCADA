@@ -70,7 +70,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
         }
         private static string TableName()
         {
-            return "FluxRealData";
+            return "FluxRun";
         }
         private void AddDataRow(DataTable dt)
         {
@@ -99,13 +99,13 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
             row["FluxMaxTime"] = FluxMaxTime;
             row["MethaneChromaMin"] = MethaneChromaMin;
             row["MethaneChromaMinTime"] = MethaneChromaMinTime;
+            row["TemperatureMin"] = TemperatureMin;
             row["TemperatureMinTime"] = TemperatureMinTime;
             row["PressureMin"] = PressureMin;
             row["PressureMinTime"] = PressureMinTime;
             row["FluxMin"] = FluxMin;
             row["FluxMinTime"] = FluxMinTime;
             row["FluxTotal"] = FluxTotal;
-
             row["PureFluxTotal"] = PureFluxTotal;
             row["IndustrialFluxTotal"] = IndustrialFluxTotal;
             row["IndustrialPureFluxTotal"] = IndustrialPureFluxTotal;
@@ -133,7 +133,6 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
             dt.Columns.Add(new DataColumn("Location", typeof(string)));
             dt.Columns.Add(new DataColumn("FluxName", typeof(string)));
             dt.Columns.Add(new DataColumn("ConcentrationPort", typeof(int)));
-            dt.Columns.Add(new DataColumn("MethaneChromaRealValue", typeof(int)));
             dt.Columns.Add(new DataColumn("FluxPort", typeof(int)));
             dt.Columns.Add(new DataColumn("PressurePort", typeof(int)));
             dt.Columns.Add(new DataColumn("TemperaturePort", typeof(int)));

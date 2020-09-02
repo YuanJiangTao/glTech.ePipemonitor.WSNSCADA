@@ -56,6 +56,7 @@ namespace glTech.ePipemonitor.WSNSCADA.Mvvm
         }
         private void ScanPluginFromAssembly()
         {
+            /*
             var container = TinyIoCContainer.Current;
             var assemblies = new List<Assembly>();
             var pluginDir = PathHelper.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), MessageToken.PLUGINS_FOLDER);
@@ -65,13 +66,15 @@ namespace glTech.ePipemonitor.WSNSCADA.Mvvm
                 var moduleAssemblies = files.Select(Assembly.LoadFile);
                 assemblies.AddRange(moduleAssemblies);
                 container.AutoRegister(assemblies, DuplicateImplementationActions.RegisterMultiple);
-                IPlugin plugin = new WSNSCADADasPlugin();
-                _plugins.Add(plugin);
-                _plugins?.ToList().ForEach(p =>
-                {
-                    PluginViewModels.Add(new PluginViewModel(p));
-                });
+
             }
+            */
+            IPlugin plugin = new WSNSCADADasPlugin();
+            _plugins.Add(plugin);
+            _plugins?.ToList().ForEach(p =>
+            {
+                PluginViewModels.Add(new PluginViewModel(p));
+            });
         }
 
     }

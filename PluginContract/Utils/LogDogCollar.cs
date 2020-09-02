@@ -1,26 +1,28 @@
-﻿using System;
+﻿using NLog;
+using System;
 using System.Collections.Generic;
 using System.IO;
-using log4net;
-using log4net.Appender;
-using log4net.Config;
-using log4net.Core;
-using log4net.Layout;
-using log4net.Repository;
-using log4net.Repository.Hierarchy;
+//using log4net;
+//using log4net.Appender;
+//using log4net.Config;
+//using log4net.Core;
+//using log4net.Layout;
+//using log4net.Repository;
+//using log4net.Repository.Hierarchy;
 
 namespace PluginContract.Utils
 {
     public class LogDogCollar : ILogDogCollar
     {
-        private string _logName;
-        private string _dir;
+        //private string _logName;
+        //private string _dir;
         public LogDogCollar()
         {
         }
 
         public void Setup(string dir, string logName, string level = "ALL")
         {
+            /*
             _dir = dir;
             _logName = logName;
 
@@ -62,15 +64,21 @@ namespace PluginContract.Utils
             }
 
             SetLevel(_logName + "logger", level, repositoryName);
+            */
         }
 
         public ILogDog GetLogger()
         {
+            Logger logger = LogManager.GetCurrentClassLogger();
+            return new LogDog(logger);
+            /*
             ILog log = LogManager.GetLogger(_logName + "repository", _logName + "logger");
 
             var appenders = log.Logger.Repository.GetAppenders();
             return new LogDog(log);
+            */
         }
+        /*
 
         public static void SetLevel(string loggerName, string levelName,string repositoryName)
         {
@@ -137,6 +145,11 @@ namespace PluginContract.Utils
             var log = GetLogger();
             log.Dispose();
             _logName = null;
+        }
+        */
+        public void Dispose()
+        {
+
         }
     }
 }

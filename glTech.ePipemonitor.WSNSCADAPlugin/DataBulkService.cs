@@ -23,7 +23,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
         private PluginMonitor _monitorActiveDb;
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
         private readonly ConcurrentQueue<SubStationUpdateRealDataEventArgs> _queue = new ConcurrentQueue<SubStationUpdateRealDataEventArgs>();
-        private static readonly Dictionary<Type, (MethodInfo, string[])> _staticMethodProperty 
+        private static readonly Dictionary<Type, (MethodInfo, string[])> _staticMethodProperty
             = new Dictionary<Type, (MethodInfo, string[])>();
         private Task _taskDatabase;
         public void DasUpdateRealData(object sender, SubStationUpdateRealDataEventArgs e)
@@ -38,7 +38,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
             BuildTableInfo<AnalogAlarmModel>();
             BuildTableInfo<AnalogRunModel>();
             BuildTableInfo<AnalogStatisticModel>();
-            //BuildTableInfo<SubStationRunModel>();
+            BuildTableInfo<SubStationRunModel>();
             BuildTableInfo<FluxRealDataModel>();
             BuildTableInfo<FluxRunModel>();
             _monitorActiveDb = monitorActiveDb;
@@ -66,7 +66,8 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
             }
             string[] primaryKeys = (string[])primaryKeysProperty.GetValue(null, null);
 
-            _staticMethodProperty.Add(typeof(T), (list2TableMethod, primaryKeys));
+            if (!_staticMethodProperty.ContainsKey(typeof(T)))
+                _staticMethodProperty.Add(typeof(T), (list2TableMethod, primaryKeys));
         }
         private void ExecuteBulk()
         {
@@ -85,6 +86,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
                         string message = "";
                         var dict = ExtractDict(_queue);
                         var realDataModels = dict.Values.SelectMany(o => o.RealDataModels).ToList();
+                        var substationRunModels = dict.Values.SelectMany(o => o.SubStationRunModels).ToList();
                         var alarmTodayModels = dict.Values.SelectMany(o => o.Alarm_TodayModels).ToList();
                         var analogAlarmModels = dict.Values.SelectMany(o => o.AnalogAlarmModels).ToList();
                         var analogRunModels = dict.Values.SelectMany(o => o.AnalogRunModels).ToList();
@@ -99,6 +101,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
                         var analogStatisticItem = BulkModels(analogStatisticModels, ref message);
                         var fluxRealDataItem = BulkModels(fluxRealDataModels, ref message);
                         var fluxRunItem = BulkModels(fluxRunModels, ref message);
+                        var substationRunItem = BulkModels(substationRunModels, ref message);
 
 
                         Bulk(realDataItem.Item1, realDataItem.Item2, ref message);
@@ -109,6 +112,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
 
                         Bulk(fluxRealDataItem.Item1, fluxRealDataItem.Item2, ref message);
                         Bulk(fluxRunItem.Item1, fluxRunItem.Item2, ref message);
+                        Bulk(substationRunItem.Item1, substationRunItem.Item2, ref message);
                         if (!string.IsNullOrEmpty(message))
                             Log("=".Repeat(20) + message + $"共耗时:{stopwatch1.Elapsed.TotalSeconds:F2}" + "=".Repeat(20));
                     }

@@ -18,7 +18,7 @@ using System.CodeDom;
 
 namespace glTech.ePipemonitor.WSNSCADAPlugin
 {
-    class Das : IDas
+    class Das : IDas, IDisposable
     {
         private readonly ConcurrentDictionary<int, SubStationModel> _subStationDict =
            new ConcurrentDictionary<int, SubStationModel>();
@@ -27,7 +27,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
 
         public event EventHandler<SubStationUpdateRealDataEventArgs> DasUpdateRealData;
         public Comm Comm { get; }
-        public bool IsGood { get; }
+        public bool IsGood { get; } = false;
 
         public int MonitoringServerID { get; }
         private MonitoringServerConfigModel _serverConfig;
@@ -36,7 +36,11 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
         {
             try
             {
-                //XmlSerializerHelper<MonitoringServer> xmlSerializer = new PluginContract.Utils.XmlSerializerHelper<MonitoringServer>();
+                Monitor = createMonitor(monitoringServerConfigModel.MonitoringServerID.ToString(), new string[] { "时间", "日志" });
+                foreach (var substationModel in subStationModels)
+                {
+                    _subStationDict.TryAdd(substationModel.SubStationID, substationModel);
+                }
                 MonitoringServerID = monitoringServerConfigModel.MonitoringServerID;
                 _serverConfig = monitoringServerConfigModel;
                 var serverConfig = XmlSerializerHelper.Serializer<MonitoringServer>(monitoringServerConfigModel.Configuration);
@@ -48,11 +52,6 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
                          serverConfig.CommunicationConfig.GetParity());
                     if (Comm != null)
                         Comm.DataReceivedEvent += Comm_DataReceivedEvent;
-                }
-                Monitor = createMonitor(monitoringServerConfigModel.MonitoringServerID.ToString(), new string[] { "时间", "日志" });
-                foreach (var substationModel in subStationModels)
-                {
-                    _subStationDict.TryAdd(substationModel.SubStationID, substationModel);
                 }
                 IsGood = true;
             }
@@ -83,11 +82,12 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
             }
             else
             {
-                Log($"[{substationId}]号传感器数据报文<--{requestInfo.DataString}");
+                if (DasConfig.ShowDetailLogs)
+                    Log($"[{substationId}]号传感器数据报文<--{requestInfo.DataString}");
                 if (!requestInfo.CrcOk)
                 {
                     Log($"[{substationId}]号传感器数据报文校验和错误，丢弃.");
-                    return;
+                    substationModel.UpdateAnalogOff(now);
                 }
                 else
                 {
@@ -103,9 +103,13 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
                             substationModel.Update(now, substationData);
                             break;
                         case SubstationCmdkey.ErrorResponse:
+                            var errorString = Enum.GetName(typeof(ErrorCode), (ErrorCode)requestInfo.Data[2]);
+                            Log($"[{substationId}]号传感器异常数据代码:{errorString}.");
+                            substationModel.UpdateAnalogOff(now);
                             break;
                         default:
                             Log($"[{substationId}]号传感器未知报文，丢弃.");
+                            substationModel.UpdateAnalogOff(now);
                             break;
                     }
 
@@ -113,7 +117,6 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
             }
             FireDasUpdateRealData(substationModel);
         }
-
         private void Log(string content, bool isAddMonitor = true)
         {
             LogD.Info(content);
@@ -127,7 +130,6 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
             Task.Factory.StartNew(() =>
             {
                 CultureInfoHelper.SetDateTimeFormat();
-                var stopwatch = new Stopwatch();
                 while (!_cts.IsCancellationRequested)
                 {
                     // das 循环发送命令, 并接受报文.
@@ -135,15 +137,13 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
                     {
                         if (Comm == null || !Comm.IsConnect)
                         {
-                            Log($"{Comm}重新连接.");
+                            Log($"网络断开,{Comm}重新连接.");
                             Comm?.Start();
                             Thread.Sleep(3000);
                             continue;
                         }
-                        stopwatch.Restart();
                         GatherData();
-                        stopwatch.Stop();
-                        Log($"{"=".Repeat(20)}一轮采集结束,耗时:{stopwatch.Elapsed.TotalSeconds:F2}秒{"=".Repeat(20)}");
+
                     }
                     catch (Exception e)
                     {
@@ -171,6 +171,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
             }
             foreach (var subStationId in _subStationDict.Keys)
             {
+                stopwatch.Restart();
                 Log($"采集传感器{subStationId}");
                 if (!_subStationDict.ContainsKey(subStationId))
                 {
@@ -185,7 +186,8 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
                     continue;
                 }
                 var command = SubstationProtocol.GetRealDataCommand(subStationId);
-                Log($"读取[{subStationId}]号传感器实时数据:{command.DataString}");
+                if (DasConfig.ShowDetailLogs)
+                    Log($"读取[{subStationId}]号传感器实时数据:{command.DataString}");
                 var result = Comm.Send(command);
                 if (!result)
                 {
@@ -196,14 +198,17 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
                 {
                     Log($"[{subStationId}]号传感器断线");
                     substationModel.UpdateNetOff(now);
+                    FireDasUpdateRealData(substationModel);
                 }
-                SleepLifeCycle();
+                SleepLifeCycle(null, stopwatch);
+                Log($"{"=".Repeat(20)}采集传感器[{subStationId}],耗时:{stopwatch.Elapsed.TotalSeconds:F2}秒{"=".Repeat(20)}");
             }
         }
 
         private void FireDasUpdateRealData(SubStationModel subStationModel)
         {
             var realdataModels = new List<RealDataModel>();
+            var substationRunModels = new List<SubStationRunModel>();
             var analogRunModels = new List<AnalogRunModel>();
             var analogStatisticModels = new List<AnalogStatisticModel>();
             var alarmTodayModels = new List<Alarm_TodayModel>();
@@ -219,6 +224,12 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
             {
                 message.Append($"RealDataModels:{realdataModels.Count}");
             }
+            var srm = subStationModel.SubStationRunModels.ToList();
+            if (srm.Any())
+            {
+                message.Append($"SubStationRunModels:{srm.Count}");
+            }
+            substationRunModels.AddRange(srm);
             var arm = subStationModel.AnalogPointModels.SelectMany(p => p.AnalogRunModels).ToList();
             if (arm.Any())
             {
@@ -260,6 +271,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
                 DasUpdateRealData.Invoke(this, new SubStationUpdateRealDataEventArgs(
                 this._serverConfig.MonitoringServerID,
                 realdataModels,
+                substationRunModels,
                 analogRunModels,
                 analogStatisticModels,
                 alarmTodayModels,
@@ -270,7 +282,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
                 //var receivers = DasUpdateRealData.GetInvocationList();
                 //foreach (EventHandler<SubStationUpdateRealDataEventArgs> receive in receivers)
                 //{
-                    
+
                 //}
             }
         }
@@ -292,6 +304,26 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
             return false;
         }
 
+        public bool DeleteFluxPoint(int substationId, int fluxId)
+        {
+            if (_subStationDict.TryGetValue(substationId, out var subStationModel))
+            {
+                if (subStationModel.IsExist(fluxId))
+                {
+                    return subStationModel.DeleteFluxPoint(fluxId);
+                }
+            }
+            return false;
+        }
+        public SubStationModel GetSubStationModelBySubstationId(int substationId)
+        {
+            if (_subStationDict.TryGetValue(substationId, out var subStationModel))
+            {
+                return subStationModel;
+            }
+            return null;
+
+        }
 
         private void SleepLifeCycle(Action action = null, Stopwatch stopwatch = null)
         {
@@ -311,14 +343,45 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
 
         public void Stop()
         {
+
             try
             {
                 _cts.Cancel();
+                if (Comm != null)
+                {
+                    Comm.DataReceivedEvent -= Comm_DataReceivedEvent;
+                    Comm.Close();
+                }
             }
             catch (Exception ex)
             {
                 LogD.Error(ex.ToString());
             }
         }
+
+        public void Dispose()
+        {
+            try
+            {
+                Comm.Dispose();
+
+            }
+            catch
+            {
+            }
+        }
+    }
+
+    /// <summary>
+    /// 错误异常代码
+    /// </summary>
+    enum ErrorCode : byte
+    {
+        非法功能 = 1,
+        非法寄存器地址 = 2,
+        非法数值 = 3,
+        从机故障 = 4,
+        从机设备忙 = 5,
+        从机执行失败 = 6
     }
 }

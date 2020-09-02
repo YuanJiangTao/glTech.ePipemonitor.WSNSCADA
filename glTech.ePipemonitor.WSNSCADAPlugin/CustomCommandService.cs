@@ -2,6 +2,7 @@
 using PluginContract.Helper;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,6 +15,8 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
 
         public event EventHandler<ConfigSubstationEventArgs> ConfigSubstationEvent;
         public event EventHandler<ConfigMonitoringServerEventArgs> ConfigMonitoringServerEvent;
+
+        public event EventHandler<ConfigFluxEventArgs> ConfigFluxEvent;
 
         public CustomCommandService()
         {
@@ -40,7 +43,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
                     var now = DateTime.Now;
                     var customCommandList = DasConfig.Repo.GetLastCustomCommand(now);
 
-                    if (customCommandList == null)
+                    if (customCommandList == null || !customCommandList.Any())
                     {
                         Thread.Sleep(1000);
                         continue; //没有命令
@@ -75,9 +78,32 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
                 case CMDKey.MonitoringServerSetting:
                     HandleCustomCommandConfigServer(customCommand);
                     break;
+                case CMDKey.ConfigureFlux:
+                    HandleCustomCommandConfigFlux(customCommand);
+                    break;
+                case CMDKey.DeleteFlux:
+                    HandleCustomCommandDeleteFlux(customCommand);
+                    break;
                 default:
                     throw new Exception($"[{customCommand.CMDKey}]暂时未实现!");
             }
+        }
+        private void HandleCustomCommandConfigFlux(CustomCommandModel customCommand)
+        {
+            LogD.Info($"CustomCommand: 收到编辑[{customCommand.CMDData:D3}]号抽采测点命令 ******");
+            if (string.IsNullOrEmpty(customCommand.CMDData))
+            {
+                customCommand.Finish();
+            }
+            else
+            {
+                ConfigFluxEvent?.Invoke(this, new ConfigFluxEventArgs(customCommand, int.Parse(customCommand.CMDData), CustomOperation.Update));
+            }
+        }
+        public void HandleCustomCommandDeleteFlux(CustomCommandModel customCommand)
+        {
+            LogD.Info($"CustomCommand: 收到删除[{customCommand.CMDData:D3}]号抽采测点命令 ******");
+            ConfigFluxEvent?.Invoke(this, new ConfigFluxEventArgs(customCommand, int.Parse(customCommand.CMDData), CustomOperation.Delete));
         }
 
         private void HandleCustomCommandDeleteSubstation(CustomCommandModel customCommand)
@@ -88,6 +114,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
         private void HandleCustomCommandConfigSubstation(CustomCommandModel customCommand)
         {
             LogD.Info($"CustomCommand: 收到编辑[{customCommand.SubStationID:D3}]号分站[{customCommand.CMDData}]命令 ******");
+            ConfigSubstationEvent?.Invoke(this, new ConfigSubstationEventArgs(customCommand, customCommand.SubStationID, CustomOperation.Update));
         }
         private void HandleCustomCommandConfigServer(CustomCommandModel customCommand)
         {
@@ -131,6 +158,17 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
             : base(model)
         {
             MonitoringServerID = monitoringServerId;
+            CustomOperation = customOperation;
+        }
+    }
+    class ConfigFluxEventArgs : CommandEventArgs
+    {
+        public int FluxId { get; private set; }
+        public CustomOperation CustomOperation { get; private set; }
+        public ConfigFluxEventArgs(CustomCommandModel model, int fluxId, CustomOperation customOperation)
+            : base(model)
+        {
+            FluxId = fluxId;
             CustomOperation = customOperation;
         }
     }

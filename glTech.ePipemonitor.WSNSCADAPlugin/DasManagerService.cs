@@ -1,5 +1,7 @@
-﻿using glTech.ePipemonitor.WSNSCADAPlugin.Models;
+﻿using glTech.ePipemonitor.WSNSCADAPlugin.glTech.SupperIO.Protocol.Substation;
+using glTech.ePipemonitor.WSNSCADAPlugin.Models;
 using PluginContract;
+using PluginContract.Helper;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -28,13 +30,22 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
         {
             try
             {
+
+#if DEBUG
+                var hexString = "01 03 1E 00 00 00 00 00 00 00 00 42 C7 D0 13 00 00 41 D0 0A F1 00 00 41 EA 80 00 00 00 41 EE CF 38 6F 91";
+                var bytes = ByteHelper.HexStringToByteArray(hexString);
+                var substationData = new SubStationData(1, bytes.Skip(3).Take(0x1E).ToArray());
+
+
+#endif
                 _databaseMonitor = databaseMonitor;
                 _dasMonitor = dasMonitor;
                 _dases.AddRange(InitDas());
-                _dases.Where(o => o.IsGood).ToList().ForEach(o => o.Start());
+                _dases.ToList().ForEach(o => o.Start());
                 _customCommandService.Start();
                 _customCommandService.ConfigMonitoringServerEvent += CustomCommandService_ConfigMonitoringServerEvent;
                 _customCommandService.ConfigSubstationEvent += CustomCommandService_ConfigSubstationEvent;
+                _customCommandService.ConfigFluxEvent += CustomCommandService_ConfigFluxEvent;
                 _dataBulkService.Start(_databaseMonitor);
             }
             catch (Exception ex)
@@ -42,6 +53,40 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
                 LogD.Error(ex.ToString());
             }
 
+        }
+
+        private void CustomCommandService_ConfigFluxEvent(object sender, ConfigFluxEventArgs e)
+        {
+            var das = _dases.Find(o => o.MonitoringServerID == e.CommandModel.MonitoringServerID);
+            if (das != null)
+            {
+
+                switch (e.CustomOperation)
+                {
+                    case CustomOperation.Delete:
+                        {
+                            das.DeleteFluxPoint(e.CommandModel.SubStationID, e.FluxId);
+                        }
+                        break;
+                    case CustomOperation.Add:
+                    case CustomOperation.Update:
+                        {
+                            var substationId = e.CommandModel.SubStationID;
+                            var substationModel = das.GetSubStationModelBySubstationId(substationId);
+                            if (substationModel != null)
+                            {
+                                if (int.TryParse(e.CommandModel.CMDData, out var fluxId))
+                                {
+                                    var fluxPointModels = DasConfig.Repo.GetFluxPointModelById(fluxId).ToList();
+                                    var fluxRunModels = DasConfig.Repo.GetFluxRunModels(fluxPointModels.Select(p => p.FluxID).ToArray()).ToList();
+                                    substationModel.InitPointModel(fluxPointModels, fluxRunModels);
+                                }
+                            }
+                        }
+                        break;
+                }
+            }
+            e.CommandModel.Finish();
         }
 
         private void CustomCommandService_ConfigSubstationEvent(object sender, ConfigSubstationEventArgs e)
@@ -74,7 +119,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
                                 var fluxPointModels = DasConfig.Repo.GetFluxPointModelsBySubstationId(substationId).ToList();
                                 var fluxRunModels = DasConfig.Repo.GetFluxRunModels(fluxPointModels.Select(p => p.FluxID).ToArray()).ToList();
                                 InitTreeStructure(subStationModel, analogPointModels, fluxPointModels, fluxRunModels);
-                                result= das.ReloadSubstation(subStationModel);
+                                result = das.ReloadSubstation(subStationModel);
                             }
                             e.CommandModel.Finish(result);
                         }
@@ -97,7 +142,21 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
         }
         private void CustomCommandService_ConfigMonitoringServerEvent(object sender, ConfigMonitoringServerEventArgs e)
         {
-            RemoveDas(e.MonitoringServerID);
+            switch (e.CustomOperation)
+            {
+                case CustomOperation.Update:
+                    RemoveDas(e.MonitoringServerID);
+                    AddDas(e.MonitoringServerID);
+                    break;
+                case CustomOperation.Add:
+                    AddDas(e.MonitoringServerID);
+                    break;
+                case CustomOperation.Delete:
+                    RemoveDas(e.MonitoringServerID);
+                    break;
+                default:
+                    break;
+            }
             e.CommandModel.Finish();
         }
         private void RemoveDas(int dasId)
@@ -111,6 +170,24 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
                 _dases.Remove(das);
             }
         }
+        private void AddDas(int dasId)
+        {
+            if (!_dases.Exists(p => p.MonitoringServerID == dasId))
+            {
+                var monitorServerConfig = DasConfig.Repo.GetMonitoringServerConfigModelById(dasId);
+                var substationModels = DasConfig.Repo.GetSubStationModelsByMonitorServerId(dasId).ToList();
+                var newDas = NewDas(monitorServerConfig, substationModels);
+                if (newDas.IsGood)
+                {
+                    _dases.Add(newDas);
+                    newDas.Start();
+                }
+                else
+                {
+                    LogD.Info($"采集服务器{dasId}初始化失败.");
+                }
+            }
+        }
         public void Stop()
         {
             try
@@ -120,7 +197,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
                 _customCommandService.Stop();
                 _customCommandService.ConfigMonitoringServerEvent -= CustomCommandService_ConfigMonitoringServerEvent;
                 _customCommandService.ConfigSubstationEvent -= CustomCommandService_ConfigSubstationEvent;
-
+                _customCommandService.ConfigFluxEvent -= CustomCommandService_ConfigFluxEvent;
             }
             catch (Exception ex)
             {

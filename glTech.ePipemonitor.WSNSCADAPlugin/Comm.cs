@@ -1,5 +1,6 @@
 ﻿using glTech.ePipemonitor.WSNSCADAPlugin.glTech.SupperIO.Protocol;
 using glTech.ePipemonitor.WSNSCADAPlugin.glTech.SupperIO.Protocol.Filter;
+using PluginContract.Helper;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -69,26 +70,36 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
 
         private void SerialPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
         {
-            _sendCommand.IsReceiveResponse = true;
-            List<byte> listBuffer = new List<byte>();
-            ReadBuffer(ref listBuffer);
-            Thread.Sleep(50);
-            //再次读取
-            ReadBuffer(ref listBuffer);
-            if (listBuffer.Any())
+            try
             {
-                var requestInfo = SubstatonFilter.Filter(listBuffer);
-                if (requestInfo == null)
+                List<byte> listBuffer = new List<byte>();
+                ReadBuffer(ref listBuffer);
+                Thread.Sleep(50);
+                //再次读取
+                ReadBuffer(ref listBuffer);
+                if (listBuffer.Any())
                 {
-                    IsBitError = true;
+                    LogD.Info($"收到的原始报文:{ByteHelper.ToHexString(listBuffer.ToArray())}");
+                    var requestInfo = SubstatonFilter.Filter(listBuffer);
+                    if (requestInfo == null)
+                    {
+                        IsBitError = true;
+                    }
+                    else
+                    {
+                        IsBitError = false;
+                        //触发事件
+                    }
+                    _sendCommand.IsReceiveResponse = true;
+                    DataReceivedEvent?.Invoke(this, new ChannelDataEventArgs(_sendCommand, requestInfo));
                 }
-                else
-                {
-                    IsBitError = false;
-                    //触发事件
-                }
-                DataReceivedEvent?.Invoke(this, new ChannelDataEventArgs(_sendCommand, requestInfo));
             }
+            catch (Exception ex)
+            {
+                _sendCommand.IsReceiveResponse = false;
+                LogD.Error($"SerialPort_DataReceived:{ex}");
+            }
+
         }
         private void ReadBuffer(ref List<byte> listBuffer)
         {
@@ -140,7 +151,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
         /// <summary>
         /// 关闭Tcp Client,并释放对象
         /// </summary>
-        private void Close()
+        public void Close()
         {
             try
             {

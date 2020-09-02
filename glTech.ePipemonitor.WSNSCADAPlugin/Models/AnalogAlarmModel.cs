@@ -116,7 +116,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
             row["EndTime"] = EndTime;
             row["SpanTime"] = SpanTime;
             row["Treatment"] = Treatment;
-            row["TreatmentTime"] = TreatmentTime;
+            row["TreatmentTime"] = DateTime.Now;
             row["Writer"] = Writer;
             dt.Rows.Add(row);
         }
@@ -150,6 +150,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
                     {
                         existM.State = newM.State;
                         existM.EndTime = newM.EndTime;
+                        existM.SpanTime = (int)newM.EndTime.Subtract(newM.StartTime).TotalSeconds;
                     }
                     else
                         analogAlarmModels.Add(newM);

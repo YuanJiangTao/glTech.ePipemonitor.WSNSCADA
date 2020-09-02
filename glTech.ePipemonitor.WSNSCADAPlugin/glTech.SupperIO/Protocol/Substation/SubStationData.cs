@@ -18,7 +18,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.glTech.SupperIO.Protocol.Substation
             try
             {
                 SubstationId = subStationID;
-                if (body == null)
+                if (body == null || body.Length != 0x1E)
                 {
                     IsValid = false;
                     return;
@@ -26,8 +26,8 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.glTech.SupperIO.Protocol.Substation
                 SensorRealDataInfos = new List<SensorRealDataInfo>();
                 for (var index = 0; index < body.Length / 6; index++)
                 {
-                    var state = ByteHelper.ToInt16(body.Skip(index * 6).ToArray(), 0);
-                    var value = ByteHelper.ToSingle(body.Skip(index * 6 + 2).Reverse().ToArray(), 0);
+                    var state = ByteHelper.ToInt16(body.Skip(index * 6).Take(2).ToArray(), 0);
+                    var value = ByteHelper.ToSingle(body.Skip(index * 6 + 2).Take(4).Reverse().ToArray(), 0);
                     var realData = new SensorRealDataInfo()
                     {
                         Value = value,
@@ -72,5 +72,13 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.glTech.SupperIO.Protocol.Substation
         public List<string> EquipCodes { get; set; } = new List<string>();
         public float Value { get; set; }
         public int ValueState { get; set; }
+
+        public bool IsAnalogOk
+        {
+            get
+            {
+                return ValueState == 0;
+            }
+        }
     }
 }

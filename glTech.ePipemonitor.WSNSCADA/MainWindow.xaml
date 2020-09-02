@@ -37,8 +37,7 @@
     <mah:MetroWindow.LeftWindowCommands>
         <mah:WindowCommands>
             <Button x:Name="BtnAboutInfo" Click="BtnAboutInfo_Click">
-                <StackPanel Orientation="Horizontal">
-                </StackPanel>
+                <IconPacks:PackIconModern Kind="Home" ToolTip="关于" Width="20" Height="20" />
             </Button>
         </mah:WindowCommands>
     </mah:MetroWindow.LeftWindowCommands>
@@ -174,6 +173,9 @@
                     <TextBlock Text="{Binding DateTimeNow, StringFormat='当前时间：{0:yyyy-MM-dd HH:mm:ss}'}"/>
                 </StatusBarItem>
                 <Separator Style="{StaticResource MahApps.Styles.Separator.StatusBar}" />
+                <StatusBarItem>
+                    <TextBlock HorizontalAlignment="Center" Text="光力科技股份有限公司" />
+                </StatusBarItem>
             </StackPanel>
             <StatusBarItem HorizontalAlignment="Right" >
                 <Button x:Name="BtnToast"  Style="{StaticResource MahApps.Styles.Button.Circle}"
