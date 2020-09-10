@@ -6,7 +6,7 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationIcon>icon.ico</ApplicationIcon>
-    <Description>2020082001</Description>
+    <Description>2020091001</Description>
   </PropertyGroup>
 
   <ItemGroup>

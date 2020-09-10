@@ -63,9 +63,9 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
         public float PipeDiameter { get; set; }
 
         /// <summary>
-        /// 压力标志   false：绝压；true：负压
+        /// 压力标志  0-负压侧绝压 1-负压侧负压 2-正压侧绝压 3-正压侧压力，默认是负压侧负压
         /// </summary>
-        public bool PressureFlag { get; set; }
+        public int PressureFlag { get; set; }
 
 
         /// <summary>
@@ -196,7 +196,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
             model.FluxPort = (byte)FluxPort;
             model.PressurePort = (byte)PressurePort;
             model.TemperaturePort = (byte)TemperaturePort;
-            model.PressureFlag = PressureFlag;
+            model.PressureFlag = PressureFlag % 2 == 1;
             model.StandardatMosphere = StandardatMosphere;
             model.MethaneChromaMaxTime = now;
             model.MethaneChromaMinTime = now;
@@ -223,8 +223,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
 
         internal void Update(DateTime now, List<RealDataModel> realDataModels)
         {
-
-            Console.WriteLine($"{"=".Repeat(20)}开始计算抽采测点{FluxID} {Location}{"=".Repeat(20)}");
+            //Console.WriteLine($"{"=".Repeat(20)}开始计算抽采测点{FluxID} {Location}{"=".Repeat(20)}");
             _preTime = _realTime;
             _realTime = now;
             float tmpConcertReal, tmpTemptReal, tmpFluxReal, tmpPressure, tmpNegativePress, tmpAbsolutePress;
@@ -232,6 +231,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
             var spanTime = CalcSpanTime();
             int count = 1;
             FillRealData(realDataModels);
+
             CalcFluxRun(spanTime, out tmpConcertReal,
                 out tmpTemptReal, out tmpFluxReal, out tmpPressure,
                 out tmpNegativePress, out tmpAbsolutePress,
@@ -259,7 +259,6 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
             FluxRunModel.IndustrialPureFluxTotal += (float)industPureFlux;
             FluxRunModel.MethaneChromaSum += tmpConcertReal;
             FluxRunModel.TemperatureSum += tmpTemptReal;
-            FluxRunModel.PressureSum += tmpPressure;
             FluxRunModel.FluxSum += tmpFluxReal;
             FluxRunModel.CountSum += count;
             FluxRunModel.SpanTime += spanTime.TotalSeconds;
@@ -282,7 +281,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
             FluxRealDataModel.COState = _coReal.RealState;
             FluxRealDataModel.CORealValue = _coReal.RealValue;
             FluxRealDataModel.PureFluxRealValue = PureFluxReal;
-            FluxRealDataModel.IndustrialFluxRealValue = IndustPureFluxReal;
+            FluxRealDataModel.IndustrialFluxRealValue = IndustFluxReal;
             FluxRealDataModel.FluxHour = FluxRunModel.FluxTotal.ToString("f2");
             FluxRealDataModel.PureFluxHour = FluxRunModel.PureFluxTotal.ToString("f2");
             FluxRealDataModel.IndustrialFluxHour = FluxRunModel.IndustrialFluxTotal.ToString("f2");
@@ -365,7 +364,6 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
                 _fluxReal.RealState = flux.RealState;
                 _fluxReal.RealDate = flux.RealDate;
 
-                Console.WriteLine("流量实时值:" + _fluxReal);
             }
             else
             {
@@ -378,7 +376,6 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
                 _temperatureReal.RealValue = tempt.RealValue;
                 _temperatureReal.RealState = tempt.RealState;
                 _temperatureReal.RealDate = tempt.RealDate;
-                Console.WriteLine("温度实时值:" + _temperatureReal);
             }
             else
             {
@@ -391,7 +388,6 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
                 _concentrationReal.RealValue = concert.RealValue;
                 _concentrationReal.RealState = concert.RealState;
                 _concentrationReal.RealDate = concert.RealDate;
-                Console.WriteLine("瓦斯实时值:" + _concentrationReal);
             }
             else
             {
@@ -404,7 +400,6 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
                 _pressureReal.RealValue = press.RealValue;
                 _pressureReal.RealState = press.RealState;
                 _pressureReal.RealDate = press.RealDate;
-                Console.WriteLine("压力实时值:" + _pressureReal);
             }
             else
             {
@@ -417,7 +412,6 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
                 _coReal.RealValue = co.RealValue;
                 _coReal.RealState = press.RealState;
                 _coReal.RealDate = co.RealDate;
-                Console.WriteLine("一氧化碳实时值:" + _coReal);
             }
         }
         /// <summary>
@@ -461,42 +455,47 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
         {
             //标矿混合流量实时
             tmpFluxReal = CheckReal(_fluxReal);
-            Console.WriteLine($"标矿混合流量实时为：{tmpFluxReal:F2}");
             //标矿流量
             tmpTemptReal = CheckReal(_temperatureReal, 20);
-            Console.WriteLine($"温度为：{tmpTemptReal:F2}");
             tmpConcertReal = CheckReal(_concentrationReal);
-            Console.WriteLine($"甲烷为：{tmpConcertReal:F2}");
             tmpPressure = CheckReal(_pressureReal);
             tmpNegativePress = tmpPressure;
-            CalcPressure(ref tmpNegativePress, out tmpAbsolutePress);
-            Console.WriteLine($"负压:{tmpNegativePress}\t绝压{tmpAbsolutePress}");
+            CalcPressure(tmpPressure, ref tmpNegativePress, out tmpAbsolutePress);
+            /*
+            float tmpFluxValue = 0;
 
 
+            if (IsIndustrialFlux)
+            {
+                tmpFluxValue = (tmpFluxReal * tmpAbsolutePress * 293) / (101.325f * (273 + tmpTemptReal));
+            }
+            */
 
             if (!IsIndustrialFlux)
             {
                 //tmpFluxReal为标矿混合流量实时
                 // 标况纯流量实时值
                 PureFluxReal = (tmpFluxReal * tmpConcertReal / 100).ToString("F2");
-                Console.WriteLine($"纯流量实时值:{PureFluxReal}");
                 // 标况混合流量累计
                 flux = tmpFluxReal * spanTime.TotalSeconds / 60;
                 // 标况纯流量累计
                 pureFlux = flux * tmpConcertReal / 100;
 
+                float tmpIndustFluxReal;
                 if (tmpAbsolutePress == 0)
                 {
-                    throw new Exception("绝压是0");
+                    LogD.Info("绝压是0");
+                    tmpIndustFluxReal = 0f;
                 }
-                // 工况混合量实时
-                var tmpIndustFluxReal = (101.325f * (273 + tmpTemptReal) / (tmpAbsolutePress * 293)) * tmpFluxReal;
-                //Console.WriteLine($"{tmpTemptReal}-{tmpAbsolutePress}-{tmpFluxReal}");
+                else
+                {
+                    // 工况混合量实时
+                    tmpIndustFluxReal = (101.325f * (273 + tmpTemptReal) / (tmpAbsolutePress * 293)) * tmpFluxReal;
+                }
+
                 IndustFluxReal = tmpIndustFluxReal.ToString("F2");
-                Console.WriteLine($"工况混合量实时值:{IndustFluxReal}");
 
                 IndustPureFluxReal = (tmpIndustFluxReal * tmpConcertReal / 100).ToString("F2");
-                Console.WriteLine($"工况纯流量实时值:{IndustPureFluxReal}");
 
                 // 工况混合流量累计
                 industFlux = tmpIndustFluxReal * spanTime.TotalSeconds / 60;
@@ -511,7 +510,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
                 //工况纯流量实时值
                 IndustPureFluxReal = (tmpFluxReal * tmpConcertReal / 100).ToString("F2");
                 //工况混合流量
-                IndustFluxReal = tmpFluxReal.ToString("F2"); ;
+                IndustFluxReal = tmpFluxReal.ToString("F2");
                 //工况混合流量累计
                 industFlux = tmpFluxReal * spanTime.TotalSeconds / 60;
                 // 工况纯流量累计
@@ -520,13 +519,12 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
 
                 if (tmpAbsolutePress == 0)
                 {
-                    throw new Exception("绝压是0");
+                    LogD.Info("绝压是0");
                 }
                 var tmpFluxRealback = (tmpAbsolutePress * 293) / (101.325f * (273 + tmpTemptReal)) * tmpFluxReal;
                 // 标况混合量实时
                 PureFluxReal = (tmpFluxRealback * tmpConcertReal / 100).ToString("F2");
                 //PureFluxReal = tmpFluxRealback .ToString("F2");  标况混合流量实时值
-                Console.WriteLine($"标况纯流量实时值:{PureFluxReal}");
                 // 标况混合流量累计
                 flux = tmpFluxRealback * spanTime.TotalSeconds / 60;
                 // 标况纯流量累计
@@ -538,18 +536,45 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
         /// <summary>
         /// 计算绝压&负压
         /// </summary>
-        private void CalcPressure(ref float tmpNegativePress, out float tmpAbsolutePress)
+        private void CalcPressure(float analogValue, ref float tmpNegativePress, out float tmpAbsolutePress)
         {
-            if (PressureFlag)
+            switch (PressureFlag)
             {
-                // 如果定义压力类型为负压
-                tmpAbsolutePress = Math.Abs(StandardatMosphere + tmpNegativePress);
-            }
-            else
-            {
-                //定义为绝压
-                tmpAbsolutePress = Math.Abs(tmpNegativePress);
-                tmpNegativePress = tmpAbsolutePress - StandardatMosphere;
+                case 0:
+                    //负压测绝压
+                    FluxRunModel.PressureFlag = false;
+                    tmpAbsolutePress = Math.Abs(analogValue);
+                    tmpNegativePress = 0 - Math.Abs(Math.Abs(analogValue) - StandardatMosphere);
+                    FluxRunModel.PressureSum += tmpAbsolutePress;
+                    break;
+                case 1:
+                    //负压测负压
+
+                    FluxRunModel.PressureFlag = true;
+                    tmpAbsolutePress = StandardatMosphere - Math.Abs(analogValue);
+                    tmpNegativePress = 0 - Math.Abs(analogValue);
+                    FluxRunModel.PressureSum += tmpNegativePress;
+                    break;
+                case 2:
+                    //正压测绝压
+                    FluxRunModel.PressureFlag = false;
+                    tmpAbsolutePress = Math.Abs(analogValue);
+                    tmpNegativePress = Math.Abs(analogValue) - StandardatMosphere;
+                    FluxRunModel.PressureSum += tmpAbsolutePress;
+                    break;
+                case 3:
+                    //正压测压力
+                    FluxRunModel.PressureFlag = true;
+                    tmpAbsolutePress = StandardatMosphere + Math.Abs(analogValue);
+                    tmpNegativePress = Math.Abs(analogValue);
+                    FluxRunModel.PressureSum += tmpAbsolutePress;
+                    break;
+                default:
+                    tmpNegativePress = 0;
+                    tmpAbsolutePress = 0;
+                    FluxRunModel.PressureSum += 0;
+                    FluxRunModel.PressureFlag = false;
+                    break;
             }
         }
 
@@ -587,7 +612,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
 #endif
 
             {
-                throw new Exception($"传感器 {realDataModel} 时间超过1分钟");
+                LogD.Info($"传感器 {realDataModel} 时间超过1分钟");
             }
 
             if (!float.TryParse(realDataModel.RealValue, out float floatValue))

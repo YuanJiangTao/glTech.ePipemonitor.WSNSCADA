@@ -14,6 +14,8 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
         public List<SubStationRunModel> SubStationRunModels { get; set; }
 
         public List<AnalogRunModel> AnalogRunModels { get; set; }
+
+        public List<DeviceFaultRunModel> DeviceFaultRunModels { get; set; }
         public List<AnalogStatisticModel> AnalogStatisticModels { get; set; }
         public List<Alarm_TodayModel> Alarm_TodayModels { get; set; }
 
@@ -29,6 +31,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
          List<RealDataModel> realdataModels,
          List<SubStationRunModel> subStationRunModels,
          List<AnalogRunModel> analogRunModels,
+         List<DeviceFaultRunModel> deviceFaultRunModels,
          List<AnalogStatisticModel> analogStatisticModels,
          List<Alarm_TodayModel> alarmTodayModels,
          List<AnalogAlarmModel> analogAlarmModels,
@@ -40,6 +43,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
             SubStationRunModels = subStationRunModels;
             Alarm_TodayModels = alarmTodayModels;
             AnalogRunModels = analogRunModels;
+            DeviceFaultRunModels = deviceFaultRunModels;
             AnalogStatisticModels = analogStatisticModels;
             AnalogAlarmModels = analogAlarmModels;
             FluxRealDataModels = fluxRealDataModels;

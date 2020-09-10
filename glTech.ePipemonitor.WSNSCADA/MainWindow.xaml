@@ -131,7 +131,7 @@
         <TextBlock Grid.Row="0" Grid.Column="0" HorizontalAlignment="Left" Margin="20,0,0,0" 
                    VerticalAlignment="Center" Text="{Binding Title}" Foreground="{StaticResource MahApps.Brushes.Highlight}"  FontSize="30"
                    FontFamily="{StaticResource MahApps.Fonts.Family.Header}"  />
-        <mah:ToggleSwitch Grid.Row="0" Grid.Column="1" Margin="0,0,30,0" OnContent="开始" OffContent="暂停" OnCommand="{Binding StartCommand}" OffCommand="{Binding StopCommand}" HorizontalAlignment="Right" />
+        <mah:ToggleSwitch Grid.Row="0" Grid.Column="1" Margin="0,0,30,0" OnContent="开始" IsOn="{Binding IsOn}"  OffContent="暂停" OnCommand="{Binding StartCommand}" OffCommand="{Binding StopCommand}" HorizontalAlignment="Right" />
         <mah:MetroAnimatedTabControl Name="PluginTabs"
                     Padding="0"
                   Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"

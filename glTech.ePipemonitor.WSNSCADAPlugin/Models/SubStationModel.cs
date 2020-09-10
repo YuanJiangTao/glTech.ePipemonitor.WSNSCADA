@@ -29,7 +29,9 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
         {
             lock (_lock)
             {
+                AnalogPointModels.Clear();
                 AnalogPointModels.AddRange(analogPointModels);
+                FluxPointModels.Clear();
                 FluxPointModels.AddRange(fluxPointModels);
 
                 AnalogPointModels.ForEach(p => p.InitPointModel());

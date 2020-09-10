@@ -38,6 +38,9 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
             _analogRunModel.SubStationID = SubStationID;
             _analogRunModel.PortNO = PortNO;
             _analogRunModel.Location = Location;
+
+
+
         }
 
         public float ErrorRand { get; set; }
@@ -95,6 +98,22 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
             }
         }
 
+        public List<RealDataModel> RealDataModels
+        {
+            get
+            {
+                return ModelHelper.CopyThenRemove(_realDataModels);
+            }
+        }
+
+        public List<DeviceFaultRunModel> DeviceFaultRunModels
+        {
+            get
+            {
+                return ModelHelper.CopyThenRemove(_deviceFaultRunModels);
+            }
+        }
+
 
         internal void Update(DateTime now, List<SensorRealDataInfo> sensorRealDataInfos)
         {
@@ -110,6 +129,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
                 AnalogStatisticModel.UpdateAnalogStatistic(ref _analogStatisticModel, _analogStatisticModels, RealDataModel, this);
                 AnalogAlarmModel.UpdateAnalogAlarm(ref _analogAlarmModel, _analogAlarmModels, RealDataModel, this, IsAlarmState);
                 Alarm_TodayModel.UpdateAlarmToday(ref _alarmTodayModel, _alarmTodayModels, RealDataModel, this, IsAlarmState);
+                DeviceFaultRunModel.UpdateDeviceFaultRun(ref _deviceFaultRunModel, _deviceFaultRunModels, RealDataModel, this, IsAlarmState);
             }
             else
             {
@@ -193,6 +213,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
                 AnalogStatisticModel.UpdateAnalogStatistic(ref _analogStatisticModel, _analogStatisticModels, RealDataModel, this);
                 AnalogAlarmModel.UpdateAnalogAlarm(ref _analogAlarmModel, _analogAlarmModels, RealDataModel, this, IsAlarmState);
                 Alarm_TodayModel.UpdateAlarmToday(ref _alarmTodayModel, _alarmTodayModels, RealDataModel, this, IsAlarmState);
+                DeviceFaultRunModel.UpdateDeviceFaultRun(ref _deviceFaultRunModel, _deviceFaultRunModels, RealDataModel, this, IsAlarmState);
             }
             else
             {
@@ -212,18 +233,22 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
             AnalogStatisticModel.UpdateAnalogStatistic(ref _analogStatisticModel, _analogStatisticModels, RealDataModel, this);
             AnalogAlarmModel.UpdateAnalogAlarm(ref _analogAlarmModel, _analogAlarmModels, RealDataModel, this, IsAlarmState);
             Alarm_TodayModel.UpdateAlarmToday(ref _alarmTodayModel, _alarmTodayModels, RealDataModel, this, IsAlarmState);
+            DeviceFaultRunModel.UpdateDeviceFaultRun(ref _deviceFaultRunModel, _deviceFaultRunModels, RealDataModel, this, IsAlarmState);
+
         }
 
         private readonly List<AnalogRunModel> _analogRunModels = new List<AnalogRunModel>();
         private readonly List<Alarm_TodayModel> _alarmTodayModels = new List<Alarm_TodayModel>();
         private readonly List<AnalogAlarmModel> _analogAlarmModels = new List<AnalogAlarmModel>();
         private readonly List<AnalogStatisticModel> _analogStatisticModels = new List<AnalogStatisticModel>();
+        private readonly List<RealDataModel> _realDataModels = new List<RealDataModel>();
+        private readonly List<DeviceFaultRunModel> _deviceFaultRunModels = new List<DeviceFaultRunModel>();
         private readonly AnalogRunModel _analogRunModel = new AnalogRunModel();
         private int _analogOffCount = 0;
         private AnalogStatisticModel _analogStatisticModel;
         private Alarm_TodayModel _alarmTodayModel;
         private AnalogAlarmModel _analogAlarmModel;
-
+        private DeviceFaultRunModel _deviceFaultRunModel;
 
     }
 }

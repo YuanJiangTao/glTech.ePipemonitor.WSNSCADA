@@ -21,7 +21,7 @@ namespace PluginContract
         protected ILogDogCollar LogDogCollar;
         protected ILogDog LogDogRoot;
         public string BaseDirectory;
-        private Thread _loadThread;
+        //private Thread _loadThread;
         public BasePlugin()
         {
             CultureInfoHelper.SetDateTimeFormat();
@@ -55,7 +55,7 @@ namespace PluginContract
 
         public void Dispose()
         {
-            _loadThread.Join(3000);
+            //_loadThread.Join(3000);
             if (_pluginMonitors != null)
             {
                 _pluginMonitors.Clear();
@@ -91,11 +91,12 @@ namespace PluginContract
         {
             try
             {
-                _loadThread = new Thread(() =>
-                {
-                    OnLoad(hostConfig);
-                });
-                _loadThread.Start();
+                OnLoad(hostConfig);
+                //_loadThread = new Thread(() =>
+                //{
+
+                //});
+                //_loadThread.Start();
             }
             catch (Exception ex)
             {

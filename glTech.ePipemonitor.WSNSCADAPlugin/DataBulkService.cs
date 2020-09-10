@@ -37,6 +37,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
             BuildTableInfo<Alarm_TodayModel>();
             BuildTableInfo<AnalogAlarmModel>();
             BuildTableInfo<AnalogRunModel>();
+            BuildTableInfo<DeviceFaultRunModel>();
             BuildTableInfo<AnalogStatisticModel>();
             BuildTableInfo<SubStationRunModel>();
             BuildTableInfo<FluxRealDataModel>();
@@ -90,6 +91,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
                         var alarmTodayModels = dict.Values.SelectMany(o => o.Alarm_TodayModels).ToList();
                         var analogAlarmModels = dict.Values.SelectMany(o => o.AnalogAlarmModels).ToList();
                         var analogRunModels = dict.Values.SelectMany(o => o.AnalogRunModels).ToList();
+                        var deviceFaultRunModels = dict.Values.SelectMany(o => o.DeviceFaultRunModels).ToList();
                         var analogStatisticModels = dict.Values.SelectMany(o => o.AnalogStatisticModels).ToList();
                         var fluxRealDataModels = dict.Values.SelectMany(o => o.FluxRealDataModels).ToList();
                         var fluxRunModels = dict.Values.SelectMany(o => o.FluxRunModels).ToList();
@@ -98,6 +100,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
                         var alarmTodayItem = BulkModels(alarmTodayModels, ref message);
                         var analogAlarmItem = BulkModels(analogAlarmModels, ref message);
                         var analogRunItem = BulkModels(analogRunModels, ref message);
+                        var deviceFaultRunItem = BulkModels(deviceFaultRunModels, ref message);
                         var analogStatisticItem = BulkModels(analogStatisticModels, ref message);
                         var fluxRealDataItem = BulkModels(fluxRealDataModels, ref message);
                         var fluxRunItem = BulkModels(fluxRunModels, ref message);
@@ -108,6 +111,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
                         Bulk(alarmTodayItem.Item1, alarmTodayItem.Item2, ref message);
                         Bulk(analogAlarmItem.Item1, analogAlarmItem.Item2, ref message);
                         Bulk(analogRunItem.Item1, analogRunItem.Item2, ref message);
+                        Bulk(deviceFaultRunItem.Item1, deviceFaultRunItem.Item2, ref message);
                         Bulk(analogStatisticItem.Item1, analogStatisticItem.Item2, ref message);
 
                         Bulk(fluxRealDataItem.Item1, fluxRealDataItem.Item2, ref message);

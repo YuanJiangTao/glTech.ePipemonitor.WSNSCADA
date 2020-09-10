@@ -83,17 +83,16 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
             row["Treatement"] = Treatement;
             row["TreatmentTime"] = TreatmentTime;
             row["Writer"] = Writer;
+            dt.Rows.Add(row);
         }
-        private DateTime _lastSaveTime;
-        private DateTime _startTime;
 
         public bool IsRequireNew(RealDataModel realDataModel)
         {
             // 如果大于5分钟, 那么写入一条数据.
-            if (realDataModel.RealDate.Subtract(_lastSaveTime).TotalMinutes >= 5)
-            {
-                return true;
-            }
+            //if (realDataModel.RealDate.Subtract(_lastSaveTime).TotalMinutes >= 5)
+            //{
+            //    return true;
+            //}
 
             // 如果值或状态变动, 并且时间大于10秒, 那么写入一条数据.
             if (SubStationState != realDataModel.RealState ||
@@ -125,7 +124,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
             {
                 subStationRunModel = NewSubStationRunModel(realDataModel, subStationModel);
                 subStationRunModel.State = 0;
-                subStationRunModels.Add(subStationRunModel);
+                subStationRunModels.Add(subStationRunModel.DeepClone());
             }
             else
             {

@@ -42,6 +42,11 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Repositories
             var sql = "select * from AnalogPoint where [IsUsed]=1";
             return Dapper.Query<AnalogPointModel>(sql);
         }
+        public IEnumerable<AnalogPointModel> GetAnalogPointModelsBySubstationId(int[] substationIds)
+        {
+            var sql = $"select * from AnalogPoint where [IsUsed]=1 AND SubStationID in ('{string.Join("','", substationIds)}')";
+            return Dapper.Query<AnalogPointModel>(sql);
+        }
 
         public IEnumerable<FluxPointModel> GetFluxPointModels()
         {
@@ -60,8 +65,6 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Repositories
                 $" and day = '{day}' " +
                 $" and hour = '{hour}' " +
                 $" and Flag = 1";
-
-            Console.WriteLine("初始化FluxRun:" + sql);
             return Dapper.Query<FluxRunModel>(sql).ToList();
         }
 
@@ -101,6 +104,18 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Repositories
         {
             var sql = $"select * from FluxPoint where IsUsed=1 AND FluxId={fluxId}";
             return Dapper.Query<FluxPointModel>(sql);
+        }
+
+        public void EndAlarmToday()
+        {
+            var sql = "Update Alarm_Today set [State]=1 where [State]=0";
+            Dapper.Execute(sql);
+        }
+        public void EndAnalogAlarm()
+        {
+            var tableName = $"AnalogAlarm{DateTime.Now:yyyyMM}";
+            var sql = $"Update {tableName}  set [State]=1 where [State]=0";
+            Dapper.Execute(sql);
         }
 
     }

@@ -135,20 +135,19 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
                     // das 循环发送命令, 并接受报文.
                     try
                     {
-                        if (Comm == null || !Comm.IsConnect)
-                        {
-                            Log($"网络断开,{Comm}重新连接.");
-                            Comm?.Start();
-                            Thread.Sleep(3000);
-                            continue;
-                        }
+                        //if (Comm == null || !Comm.IsConnect)
+                        //{
+                        //    Log($"网络断开,{Comm}重新连接.");
+                        //    Comm?.Start();
+                        //    Thread.Sleep(3000);
+                        //    continue;
+                        //}
                         GatherData();
 
                     }
                     catch (Exception e)
                     {
                         LogD.Error("轮询中出现错误:" + e);
-                        // 循环不能断, 直至Stop;
                     }
                     finally
                     {
@@ -179,10 +178,14 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
                 }
                 var now = DateTime.Now;
                 var substationModel = _subStationDict[subStationId];
-                if (!Comm.IsConnect)
+                if (Comm == null || !Comm.IsConnect)
                 {
+                    Log($"网络断开,{Comm}重新连接.");
+                    Comm?.Start();
                     Log($"{Comm} 断开, {substationModel.SubStationID}断线");
                     substationModel.UpdateNetOff(now);
+                    FireDasUpdateRealData(substationModel);
+                    SleepLifeCycle(null, stopwatch);
                     continue;
                 }
                 var command = SubstationProtocol.GetRealDataCommand(subStationId);
@@ -210,6 +213,7 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
             var realdataModels = new List<RealDataModel>();
             var substationRunModels = new List<SubStationRunModel>();
             var analogRunModels = new List<AnalogRunModel>();
+            var deviceFaultRunModels = new List<DeviceFaultRunModel>();
             var analogStatisticModels = new List<AnalogStatisticModel>();
             var alarmTodayModels = new List<Alarm_TodayModel>();
             var analogAlarmModels = new List<AnalogAlarmModel>();
@@ -236,6 +240,12 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
                 message.Append($"AnalogRunModels:{arm.Count}");
             }
             analogRunModels.AddRange(arm);
+            var dfr = subStationModel.AnalogPointModels.SelectMany(p => p.DeviceFaultRunModels).ToList();
+            if (dfr.Any())
+            {
+                message.Append($"DeviceFaultRunModels:{dfr.Count}");
+            }
+            deviceFaultRunModels.AddRange(dfr);
             var asm = subStationModel.AnalogPointModels.SelectMany(p => p.AnalogStatisticModels).ToList();
             if (asm.Any())
             {
@@ -268,22 +278,21 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
             fluxRunModels.AddRange(frunm);
             if (DasUpdateRealData != null)
             {
-                DasUpdateRealData.Invoke(this, new SubStationUpdateRealDataEventArgs(
-                this._serverConfig.MonitoringServerID,
-                realdataModels,
-                substationRunModels,
-                analogRunModels,
-                analogStatisticModels,
-                alarmTodayModels,
-                analogAlarmModels,
-                fluxRealDataModels,
-                fluxRunModels
-                ));
-                //var receivers = DasUpdateRealData.GetInvocationList();
-                //foreach (EventHandler<SubStationUpdateRealDataEventArgs> receive in receivers)
-                //{
-
-                //}
+                Task.Factory.StartNew(() =>
+                {
+                    DasUpdateRealData.Invoke(this, new SubStationUpdateRealDataEventArgs(
+                  this._serverConfig.MonitoringServerID,
+                  realdataModels,
+                  substationRunModels,
+                  analogRunModels,
+                  deviceFaultRunModels,
+                  analogStatisticModels,
+                  alarmTodayModels,
+                  analogAlarmModels,
+                  fluxRealDataModels,
+                  fluxRunModels
+                  ));
+                });
             }
         }
 

@@ -36,11 +36,24 @@ namespace glTech.ePipemonitor.WSNSCADA.Mvvm
 
         private void Start()
         {
+            IsOn = true;
             _controller.Start();
         }
         private void Stop()
         {
+            IsOn = false;
             _controller.Stop();
+        }
+
+        private bool _isOn = true;
+        public bool IsOn
+        {
+            get => _isOn;
+            set
+            {
+                _isOn = value;
+                RaisePropertyChanged();
+            }
         }
 
         public string Title { get; private set; }
@@ -63,6 +76,10 @@ namespace glTech.ePipemonitor.WSNSCADA.Mvvm
             _dispatcherTimer.Interval = new TimeSpan(0, 0, 1);
             _dispatcherTimer.Start();
             SelectedPluginVm = _controller.PluginViewModels.FirstOrDefault();
+           await Task.Factory.StartNew(() =>
+            {
+                Start();
+            });
         }
 
         private PluginViewModel _selectedPluginVm;

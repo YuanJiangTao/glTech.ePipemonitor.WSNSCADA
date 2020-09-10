@@ -47,6 +47,9 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
                 _customCommandService.ConfigSubstationEvent += CustomCommandService_ConfigSubstationEvent;
                 _customCommandService.ConfigFluxEvent += CustomCommandService_ConfigFluxEvent;
                 _dataBulkService.Start(_databaseMonitor);
+                DasConfig.Repo.EndAlarmToday();
+                DasConfig.Repo.EndAnalogAlarm();
+
             }
             catch (Exception ex)
             {
@@ -176,6 +179,18 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin
             {
                 var monitorServerConfig = DasConfig.Repo.GetMonitoringServerConfigModelById(dasId);
                 var substationModels = DasConfig.Repo.GetSubStationModelsByMonitorServerId(dasId).ToList();
+                var analogPointModels = DasConfig.Repo.GetAnalogPointModels();
+                var fluxPointModels = DasConfig.Repo.GetFluxPointModels();
+                var fluxRunModels = DasConfig.Repo.GetFluxRunModels(fluxPointModels.Select(p => p.FluxID).ToArray());
+                foreach (var substation in substationModels)
+                {
+                    var subAnalogPointModels = analogPointModels.Where(p => p.SubStationID == substation.SubStationID).ToList();
+                    var subFluxPointModels = fluxPointModels.Where(p => p.SubStationID == substation.SubStationID).ToList();
+                    var subFluxRunModels = fluxRunModels.Where(p => p.SubStationID == substation.SubStationID).ToList();
+                    substation.InitPointModel(subAnalogPointModels, subFluxPointModels, subFluxRunModels);
+                }
+                var dasSubstationModels = substationModels.Where(p => p.MonitoringServerID == monitorServerConfig.MonitoringServerID).ToList();
+                monitorServerConfig.InitSubStation(dasSubstationModels);
                 var newDas = NewDas(monitorServerConfig, substationModels);
                 if (newDas.IsGood)
                 {

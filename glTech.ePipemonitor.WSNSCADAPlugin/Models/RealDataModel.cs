@@ -39,6 +39,11 @@ namespace glTech.ePipemonitor.WSNSCADAPlugin.Models
             yield return dt;
         }
 
+        public override string ToString()
+        {
+            return $"{PointID}:{RealValue}";
+        }
+
         /// <summary>
         /// 建立数据内存表结构.
         /// </summary>
